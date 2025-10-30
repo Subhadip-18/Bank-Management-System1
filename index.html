@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bank Management System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #0077b6, #90e0ef);
+      color: #023047;
+      text-align: center;
+      padding: 30px;
+    }
+    h1 {
+      color: #fff;
+      text-shadow: 1px 1px 3px #000;
+    }
+    .container {
+      background: #fff;
+      border-radius: 15px;
+      padding: 20px;
+      max-width: 650px;
+      margin: 20px auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    button {
+      background-color: #0077b6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #005f73;
+    }
+    input {
+      margin: 5px;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 80%;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #0077b6;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #0077b6;
+      color: white;
+    }
+    hr {
+      border: none;
+      height: 1px;
+      background-color: #ccc;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🏦 Bank Management System</h1>
+
+  <!-- Home Menu -->
+  <div class="container" id="homeSection">
+    <h2>Welcome!</h2>
+    <p>Select an option to continue:</p>
+    <button onclick="showCreate()">Create Account</button>
+    <button onclick="showLogin()">Login</button>
+  </div>
+
+  <!-- Create Account Section -->
+  <div class="container" id="createSection" style="display:none;">
+    <h3>Create New Account</h3>
+    <input type="text" id="name" placeholder="Enter Account Holder Name"><br>
+    <input type="number" id="deposit" placeholder="Initial Deposit"><br>
+    <input type="password" id="password" placeholder="Set a Password"><br>
+    <button onclick="createAccount()">Create Account</button>
+    <p id="createMsg"></p>
+    <button onclick="backHome()">⬅ Back</button>
+  </div>
+
+  <!-- Login Section -->
+  <div class="container" id="loginSection" style="display:none;">
+    <h3>Login to Your Account</h3>
+    <input type="number" id="loginAccNo" placeholder="Account Number"><br>
+    <input type="password" id="loginPassword" placeholder="Password"><br>
+    <button onclick="login()">Login</button>
+    <p id="loginMsg"></p>
+    <button onclick="backHome()">⬅ Back</button>
+  </div>
+
+  <!-- Banking Section -->
+  <div class="container" id="bankSection" style="display:none;">
+    <h3 id="welcome"></h3>
+    <button onclick="logout()">Logout</button>
+    <hr>
+
+    <h3>Deposit / Withdraw Money</h3>
+    <input type="number" id="amount" placeholder="Enter Amount"><br>
+    <button onclick="deposit()">Deposit</button>
+    <button onclick="withdraw()">Withdraw</button>
+    <p id="transactionMsg"></p>
+
+    <hr>
+    <h3>💰 Check Balance</h3>
+    <button onclick="checkBalance()">Check</button>
+    <p id="balanceMsg"></p>
+
+    <hr>
+    <h3>💸 Transfer Money to Another Account</h3>
+    <input type="number" id="transferAccNo" placeholder="Enter Recipient Account Number"><br>
+    <input type="number" id="transferAmount" placeholder="Enter Amount to Transfer"><br>
+    <button onclick="transferMoney()">Transfer</button>
+    <p id="transferMsg"></p>
+
+    <hr>
+    <h3>📜 Transaction History</h3>
+    <button onclick="viewHistory()">Show My Transactions</button>
+    <div id="history"></div>
+  </div>
+
+  <script>
+    let accounts = JSON.parse(localStorage.getItem("bankAccounts")) || [];
+    let nextAccountNumber = parseInt(localStorage.getItem("nextAccNo")) || 1001;
+    let currentUser = null;
+
+    function saveData() {
+      localStorage.setItem("bankAccounts", JSON.stringify(accounts));
+      localStorage.setItem("nextAccNo", nextAccountNumber);
+    }
+
+    // Navigation
+    function showCreate() {
+      document.getElementById("homeSection").style.display = "none";
+      document.getElementById("createSection").style.display = "block";
+    }
+
+    function showLogin() {
+      document.getElementById("homeSection").style.display = "none";
+      document.getElementById("loginSection").style.display = "block";
+    }
+
+    function backHome() {
+      document.getElementById("createSection").style.display = "none";
+      document.getElementById("loginSection").style.display = "none";
+      document.getElementById("homeSection").style.display = "block";
+    }
+
+    // Create Account
+    function createAccount() {
+      const name = document.getElementById("name").value.trim();
+      const deposit = parseFloat(document.getElementById("deposit").value);
+      const password = document.getElementById("password").value.trim();
+
+      if (!name || isNaN(deposit) || deposit < 0 || !password) {
+        document.getElementById("createMsg").innerHTML = "⚠️ Please enter valid details!";
+        return;
+      }
+
+      const newAccount = {
+        accountNumber: nextAccountNumber++,
+        name: name,
+        balance: deposit,
+        password: password,
+        transactions: [`🟢 Account created with ₹${deposit} | ${new Date().toLocaleString()}`]
+      };
+
+      accounts.push(newAccount);
+      saveData();
+
+      document.getElementById("createMsg").innerHTML = 
+        `✅ Account created successfully!<br><b>Account Number:</b> ${newAccount.accountNumber}<br>Use your password to login.`;
+
+      document.getElementById("name").value = "";
+      document.getElementById("deposit").value = "";
+      document.getElementById("password").value = "";
+
+      setTimeout(() => {
+        backHome();
+      }, 2500);
+    }
+
+    // Login
+    function login() {
+      const accNo = parseInt(document.getElementById("loginAccNo").value);
+      const password = document.getElementById("loginPassword").value.trim();
+
+      const user = accounts.find(a => a.accountNumber === accNo && a.password === password);
+
+      if (user) {
+        currentUser = user;
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("bankSection").style.display = "block";
+        document.getElementById("welcome").innerText = 
+          `👋 Welcome, ${user.name} (Acc No: ${user.accountNumber})`;
+        document.getElementById("loginMsg").innerText = "";
+      } else {
+        document.getElementById("loginMsg").innerText = "❌ Invalid account number or password!";
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById("bankSection").style.display = "none";
+      document.getElementById("homeSection").style.display = "block";
+      document.getElementById("transactionMsg").innerText = "";
+      document.getElementById("balanceMsg").innerText = "";
+      document.getElementById("transferMsg").innerText = "";
+      document.getElementById("history").innerHTML = "";
+    }
+
+    // Deposit / Withdraw
+    function deposit() {
+      const amount = parseFloat(document.getElementById("amount").value);
+      if (isNaN(amount) || amount <= 0) {
+        document.getElementById("transactionMsg").innerText = "⚠️ Enter valid amount!";
+        return;
+      }
+      currentUser.balance += amount;
+      currentUser.transactions.push(`🟢 Deposited ₹${amount} | ${new Date().toLocaleString()}`);
+      saveData();
+      document.getElementById("transactionMsg").innerText = 
+        `✅ ₹${amount} deposited. New Balance: ₹${currentUser.balance.toFixed(2)}`;
+      document.getElementById("amount").value = "";
+    }
+
+    function withdraw() {
+      const amount = parseFloat(document.getElementById("amount").value);
+      if (isNaN(amount) || amount <= 0) {
+        document.getElementById("transactionMsg").innerText = "⚠️ Enter valid amount!";
+        return;
+      }
+      if (amount > currentUser.balance) {
+        document.getElementById("transactionMsg").innerText = "❌ Insufficient balance!";
+        return;
+      }
+      currentUser.balance -= amount;
+      currentUser.transactions.push(`🔴 Withdrawn ₹${amount} | ${new Date().toLocaleString()}`);
+      saveData();
+      document.getElementById("transactionMsg").innerText = 
+        `✅ ₹${amount} withdrawn. Remaining Balance: ₹${currentUser.balance.toFixed(2)}`;
+      document.getElementById("amount").value = "";
+    }
+
+    // Check Balance
+    function checkBalance() {
+      document.getElementById("balanceMsg").innerText = 
+        `💰 Current Balance: ₹${currentUser.balance.toFixed(2)}`;
+    }
+
+    // Transfer
+    function transferMoney() {
+      const recipientAccNo = parseInt(document.getElementById("transferAccNo").value);
+      const amount = parseFloat(document.getElementById("transferAmount").value);
+
+      if (isNaN(recipientAccNo) || isNaN(amount) || amount <= 0) {
+        document.getElementById("transferMsg").innerText = "⚠️ Enter valid account number and amount!";
+        return;
+      }
+
+      if (recipientAccNo === currentUser.accountNumber) {
+        document.getElementById("transferMsg").innerText = "⚠️ You cannot transfer to your own account!";
+        return;
+      }
+
+      const recipient = accounts.find(a => a.accountNumber === recipientAccNo);
+      if (!recipient) {
+        document.getElementById("transferMsg").innerText = "❌ Recipient account not found!";
+        return;
+      }
+
+      if (amount > currentUser.balance) {
+        document.getElementById("transferMsg").innerText = "❌ Insufficient balance!";
+        return;
+      }
+
+      // Perform transfer
+      currentUser.balance -= amount;
+      recipient.balance += amount;
+
+      const time = new Date().toLocaleString();
+      currentUser.transactions.push(`🔵 Transferred ₹${amount} to Acc ${recipientAccNo} | ${time}`);
+      recipient.transactions.push(`🟢 Received ₹${amount} from Acc ${currentUser.accountNumber} | ${time}`);
+
+      saveData();
+
+      // ✅ Success message
+      document.getElementById("transferMsg").innerHTML = 
+        `✅ Successfully Transferred ₹${amount} to ${recipient.name} (Acc No: ${recipient.accountNumber})`;
+
+      document.getElementById("transferAccNo").value = "";
+      document.getElementById("transferAmount").value = "";
+    }
+
+    // History
+    function viewHistory() {
+      let html = "<table><tr><th>Transaction Details</th></tr>";
+      if (currentUser.transactions.length === 0) {
+        html += "<tr><td>No transactions found.</td></tr>";
+      } else {
+        for (let t of currentUser.transactions.slice().reverse()) {
+          html += `<tr><td>${t}</td></tr>`;
+        }
+      }
+      html += "</table>";
+      document.getElementById("history").innerHTML = html;
+    }
+  </script>
+
+</body>
+</html>
